@@ -137,15 +137,12 @@ public class RoadMap extends Graph<RoadEdge> implements Serializable {
                     this.add(edge);
                 }
             }
-
-            sharedStreetsReader.close();
-
-            loadedTiles.add(tileId);
         }
         catch(Exception e) {
-            e.printStackTrace();
+            logger.info("failed to load tile: " + this.tileSource + tileId);
         }
         finally {
+            loadedTiles.add(tileId);
             mapLock.writeLock().unlock();
         }
 

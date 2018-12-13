@@ -31,7 +31,7 @@ import java.io.IOException;
 @Public
 public class ProtoTileOutputFormat<IT extends  TilableData> extends TiledNIOFileOutputFormat<IT> {
 
-    int zLevel = 10;
+    int zLevel;
     boolean saveWeekly;
 
     public ProtoTileOutputFormat(String outputPath, int zLevel, boolean saveWeekly) {

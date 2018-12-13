@@ -32,8 +32,6 @@ import java.util.HashSet;
 
 public class BatchMatcher {
 
-    static int OUTPUT_ZLEVEL = 12;
-
     static Logger logger = LoggerFactory.getLogger(BatchMatcher.class);
 
     public static void main(String[] args) throws Exception {
@@ -103,10 +101,15 @@ public class BatchMatcher {
                 .withArgName("EVENT-TYPE")
                 .create() );
 
+        options.addOption( OptionBuilder.withLongOpt( "zlevel" )
+                .withDescription( "zoom level for event output" )
+                .hasArg()
+                .withArgName("Z-LEVEL")
+                .create() );
 
         options.addOption("f", "fast snap method" );
 
-        String tileSource = "osm/planet-180430";
+        String tileSource = "";
 
         String tmpTilePath = "/tmp/shst_tiles/";
 
@@ -122,11 +125,15 @@ public class BatchMatcher {
 
         String trackerPath = "tracker.properties";
 
+        int defaultZLevel = 12;
+        int defaultBinSize = 30; // 30 meters for z level 12
+
+        int zLevel = defaultZLevel;
+
         boolean fastSnap = false;
         boolean debug = false;
         boolean dust = false;
 
-        int paramEventBinSize = 10; // bin size in meters
 
         try {
             // parse the command line arguments
@@ -171,8 +178,9 @@ public class BatchMatcher {
                 eventTypeTmp = line.getOptionValue( "eventType" );
             }
 
-            if( line.hasOption( "binSize" ) ) {
-                paramEventBinSize = Integer.parseInt(line.getOptionValue( "binSize" ));
+
+            if (line.hasOption("zLevel")) {
+                zLevel = Integer.parseInt(line.getOptionValue( "zLevel" ));
             }
 
             if(line.hasOption("f"))
@@ -180,15 +188,22 @@ public class BatchMatcher {
 
         }
         catch( Exception exp ) {
-            System.out.println( "Unexpected exception:" + exp.getMessage() );
+           System.out.println( "Unexpected exception:" + exp.getMessage() );
 
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp( "matcher", options );
             return;
         }
 
-        final int eventBinSize = paramEventBinSize; // bin size for event aggregation (in meters)
         final String eventType = eventTypeTmp; // eventType string
+
+
+        // 11      30 * (12 - 11)^2
+        // 12      30
+        // 13      30 * 2^(-1)
+        // 14      30 * 2^(-2)
+
+        final int eventBinSize = (int) (defaultBinSize * Math.pow(2, defaultZLevel - zLevel));
 
         logger.info("Setting up matching engine");
 
@@ -247,7 +262,7 @@ public class BatchMatcher {
 
             int snapRadius = 10; // search radius (meters) for snapping to nearby edges.
 
-            DataSet<SnappedEvent> snappedEvents = SharedStreetsMatcher.matcher.snapEvents(inputEvents, snapRadius);
+            DataSet<SnappedEvent> snappedEvents = SharedStreetsMatcher.matcher.snapEvents(inputEvents, snapRadius, zLevel);
 
             DataSet<SharedStreetsEventData> binnedData = snappedEvents.groupBy(new KeySelector<SnappedEvent, Long>() {
 
@@ -291,7 +306,7 @@ public class BatchMatcher {
                 }
             });
 
-            ProtoTileOutputFormat outputFormat = new ProtoTileOutputFormat<SharedStreetsEventData>(outputPath, OUTPUT_ZLEVEL, true);
+            ProtoTileOutputFormat outputFormat = new ProtoTileOutputFormat<SharedStreetsEventData>(outputPath, zLevel, true);
 
             binnedData.output(outputFormat).setParallelism(1);
         }
@@ -300,7 +315,7 @@ public class BatchMatcher {
             // use default HMM matcher
 
             // step 2:  match input events
-            DataSet<MatchOutput> matchOutput = SharedStreetsMatcher.matcher.matchEvents(inputEvents, debug);
+            DataSet<MatchOutput> matchOutput = SharedStreetsMatcher.matcher.matchEvents(inputEvents, debug, zLevel);
 
             if(debug) {
 
@@ -347,7 +362,7 @@ public class BatchMatcher {
                     }
                 });
 
-                ProtoTileOutputFormat dustOutputFormat = new ProtoTileOutputFormat<MatchFailureCluster>(dustPath, OUTPUT_ZLEVEL, false);
+                ProtoTileOutputFormat dustOutputFormat = new ProtoTileOutputFormat<MatchFailureCluster>(dustPath, zLevel, false);
                 failureCluster.output(dustOutputFormat).setParallelism(1);
             }
 
@@ -471,10 +486,10 @@ public class BatchMatcher {
 
             // step 4: write tiles
 
-            ProtoTileOutputFormat eventOutputFormat = new ProtoTileOutputFormat<SharedStreetsEventData>(outputPath, OUTPUT_ZLEVEL, true);
+            ProtoTileOutputFormat eventOutputFormat = new ProtoTileOutputFormat<SharedStreetsEventData>(outputPath, zLevel, true);
             binnedData.output(eventOutputFormat).setParallelism(1);
 
-            ProtoTileOutputFormat speedOutputFormat = new ProtoTileOutputFormat<SharedStreetsSpeedData>(outputPath, OUTPUT_ZLEVEL, true);
+            ProtoTileOutputFormat speedOutputFormat = new ProtoTileOutputFormat<SharedStreetsSpeedData>(outputPath, zLevel, true);
             aggregatedSpeeds.output(speedOutputFormat).setParallelism(1);
         }
 

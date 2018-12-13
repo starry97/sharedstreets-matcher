@@ -115,16 +115,15 @@ public class SharedStreetsReader implements RoadReader {
 
         File tileTempFile = new File(tmpTilePath, tileFileName);
 
-        if(!tileTempFile.exists()) {
-
-            new File(tmpTilePath).mkdirs();
-
-            logger.info("loaded tile:  {} {}", tileSource, tileFileName);
-
-            URL tileUrl = new URL("https://tiles.sharedstreets.io/" + tileSource + "/" + tileFileName);
-            FileUtils.copyURLToFile(tileUrl, tileTempFile);
-
+        // Links to geometry files
+        if (tileSource.indexOf(tileSource.length() - 1) != '/') {
+            tileSource += "/";
         }
+        URL tileUrl = new File(tileSource + tileFileName).toURI().toURL();
+
+        logger.info("loaded tile:  {} {}", tileUrl);
+
+        FileUtils.copyURLToFile(tileUrl, tileTempFile);
 
         this.tilePath = tileTempFile.toPath();
     }

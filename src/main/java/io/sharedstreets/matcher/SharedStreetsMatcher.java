@@ -60,7 +60,7 @@ public class SharedStreetsMatcher extends Matcher implements Serializable {
     }
 
 
-    public DataSet<SnappedEvent> snapEvents(DataSet<Tuple3<Long, Long, InputEvent>> inputEvents, double radius) {
+    public DataSet<SnappedEvent> snapEvents(DataSet<Tuple3<Long, Long, InputEvent>> inputEvents, double radius, int zLevel) {
 
         DataSet<SnappedEvent> snappedEvents = inputEvents.flatMap(new FlatMapFunction<Tuple3<Long, Long, InputEvent>, SnappedEvent>() {
             @Override
@@ -68,7 +68,7 @@ public class SharedStreetsMatcher extends Matcher implements Serializable {
 
                 InputEvent item = value.f2;
 
-                map.loadTile(item.getTileId());
+                map.loadTile(item.getTileId(zLevel));
 
                 com.esri.core.geometry.Point p = new com.esri.core.geometry.Point(item.point.lon, item.point.lat);
                 Set<RoadPoint> roadPoints = map.index().radius(p, radius);
@@ -108,7 +108,7 @@ public class SharedStreetsMatcher extends Matcher implements Serializable {
         return snappedEvents;
     }
 
-    public DataSet<MatchOutput> matchEvents(DataSet<Tuple3<Long, Long, InputEvent>> inputEvents, boolean debug) {
+    public DataSet<MatchOutput> matchEvents(DataSet<Tuple3<Long, Long, InputEvent>> inputEvents, boolean debug, int zLevel) {
 
         DataSet<MatchOutput> matchOutputDataSet = inputEvents.groupBy(0)
                 .sortGroup(1, Order.ASCENDING)
@@ -129,7 +129,7 @@ public class SharedStreetsMatcher extends Matcher implements Serializable {
 
                                 InputEvent item = value.f2;
 
-                                map.loadTile(item.getTileId());
+                                map.loadTile(item.getTileId(zLevel));
 
                                 try {
                                     map.readLock();

@@ -37,8 +37,8 @@ public class InputEvent implements Serializable {
 
     public boolean included;
 
-    public TileId getTileId() {
-        return TileId.lonLatToTileId(12, point.lon, point.lat);
+    public TileId getTileId(int z) {
+        return TileId.lonLatToTileId(z, point.lon, point.lat);
     }
 
     public Ingest.InputEventProto toProto() {
