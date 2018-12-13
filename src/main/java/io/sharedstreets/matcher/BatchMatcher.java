@@ -89,12 +89,6 @@ public class BatchMatcher {
                 .withArgName("DUST-DIR")
                 .create() );
 
-        options.addOption( OptionBuilder.withLongOpt( "binSize" )
-                .withDescription( "path to map dust output" )
-                .hasArg()
-                .withArgName("DUST-DIR")
-                .create() );
-
         options.addOption( OptionBuilder.withLongOpt( "eventType" )
                 .withDescription( "name for event output" )
                 .hasArg()
@@ -105,6 +99,12 @@ public class BatchMatcher {
                 .withDescription( "zoom level for event output" )
                 .hasArg()
                 .withArgName("Z-LEVEL")
+                .create() );
+
+        options.addOption( OptionBuilder.withLongOpt( "binSize" )
+                .withDescription( "bin size in meters" )
+                .hasArg()
+                .withArgName("BIN-SIZE")
                 .create() );
 
         options.addOption("f", "fast snap method" );
@@ -125,10 +125,10 @@ public class BatchMatcher {
 
         String trackerPath = "tracker.properties";
 
-        int defaultZLevel = 12;
-        int defaultBinSize = 30; // 30 meters for z level 12
 
-        int zLevel = defaultZLevel;
+        int zLevel = 12;
+        int binSize = 30;
+
 
         boolean fastSnap = false;
         boolean debug = false;
@@ -178,9 +178,13 @@ public class BatchMatcher {
                 eventTypeTmp = line.getOptionValue( "eventType" );
             }
 
+            if (line.hasOption("binSize")) {
+                binSize = Integer.parseInt(line.getOptionValue( "binSize" ));
+            }
 
-            if (line.hasOption("zLevel")) {
-                zLevel = Integer.parseInt(line.getOptionValue( "zLevel" ));
+
+            if (line.hasOption("zlevel")) {
+                zLevel = Integer.parseInt(line.getOptionValue( "zlevel" ));
             }
 
             if(line.hasOption("f"))
@@ -197,13 +201,7 @@ public class BatchMatcher {
 
         final String eventType = eventTypeTmp; // eventType string
 
-
-        // 11      30 * (12 - 11)^2
-        // 12      30
-        // 13      30 * 2^(-1)
-        // 14      30 * 2^(-2)
-
-        final int eventBinSize = (int) (defaultBinSize * Math.pow(2, defaultZLevel - zLevel));
+        final int eventBinSize = binSize;
 
         logger.info("Setting up matching engine");
 
